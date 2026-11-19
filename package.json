@@ -1,6 +1,6 @@
 {
   "name": "agentarts-sdk-monorepo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "description": "Huawei Cloud AgentArts SDK for Node.js - monorepo",
