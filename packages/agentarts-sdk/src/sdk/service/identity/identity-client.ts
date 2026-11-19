@@ -76,7 +76,7 @@ import {
   UserIdentifier,
   WorkloadIdentity,
   WorkloadIdentitySummary,
-} from '@huaweicloud/huaweicloud-sdk-agentidentity';
+} from '@tianma630/huaweicloud-sdk-agentidentity';
 
 import { getIdentityEndpoint } from '../../utils/constant.js';
 import { getLogger } from '../../utils/logging.js';

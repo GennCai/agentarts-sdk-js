@@ -1,6 +1,6 @@
 ---
-'@huaweicloud/agentarts-sdk': patch
-'@huaweicloud/huaweicloud-sdk-agentidentity': patch
+'@tianma630/agentarts-sdk': patch
+'@tianma630/huaweicloud-sdk-agentidentity': patch
 ---
 
 agentarts-sdk init

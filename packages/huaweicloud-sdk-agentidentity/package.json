@@ -1,5 +1,5 @@
 {
-  "name": "@huaweicloud/huaweicloud-sdk-agentidentity",
+  "name": "@tianma630/huaweicloud-sdk-agentidentity",
   "version": "0.0.1",
   "description": "Huawei Cloud AgentIdentity SDK for Node.js (AgentArts port, v1 subset)",
   "type": "module",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@huaweicloud/huaweicloud-sdk-core": "3.1.222",
-    "uuid": "^9.0.0"
+    "uuid": "14.0.3"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
