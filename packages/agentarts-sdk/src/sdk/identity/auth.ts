@@ -16,7 +16,7 @@ import { Config } from './config.js';
 import { IdentityClient } from '../service/identity/identity-client.js';
 import { TokenPoller } from '../service/identity/polling/token-poller.js';
 import type { StsCredentials, OAuth2Vendor } from './types.js';
-import type { StsTag } from 'huaweicloud-sdk-agentidentity';
+import type { StsTag } from '@huaweicloud/huaweicloud-sdk-agentidentity';
 
 const logger = getLogger('identity.auth');
 

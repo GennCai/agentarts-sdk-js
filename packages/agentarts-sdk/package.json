@@ -1,6 +1,6 @@
 {
-  "name": "agentarts-sdk",
-  "version": "0.1.11",
+  "name": "@huaweicloud/agentarts-sdk",
+  "version": "0.0.1",
   "description": "Huawei Cloud AgentArts SDK - Build, deploy and manage AI agents with cloud capabilities",
   "type": "module",
   "main": "./dist/index.js",
@@ -169,7 +169,7 @@
     "@huaweicloud/huaweicloud-sdk-iam": "3.1.222",
     "@huaweicloud/huaweicloud-sdk-swr": "3.1.222",
     "commander": "^15.1.0",
-    "huaweicloud-sdk-agentidentity": "workspace:*",
+    "@huaweicloud/huaweicloud-sdk-agentidentity": "workspace:*",
     "undici": "^7.16.0",
     "uuid": "^9.0.0",
     "ws": "^8.23.0",

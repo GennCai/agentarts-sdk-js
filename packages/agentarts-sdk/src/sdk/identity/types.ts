@@ -8,7 +8,7 @@ import {
   CredentialProviderVendor,
   type GetResourceStsTokenResponseBodyCredentials,
   type Oauth2Discovery as Oauth2DiscoveryModel,
-} from 'huaweicloud-sdk-agentidentity';
+} from '@huaweicloud/huaweicloud-sdk-agentidentity';
 
 /**
  * Type alias for STS token credentials.
