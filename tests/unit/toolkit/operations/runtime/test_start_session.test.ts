@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime start-session operation and its CLI command.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_start_session.py`
@@ -43,8 +43,7 @@ vi.mock('agentarts-sdk/toolkit/operations/runtime/invoke', async (importOriginal
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -59,10 +58,10 @@ const operationMocks = vi.hoisted(() => ({
 
 vi.mock('agentarts-sdk/toolkit/operations/runtime/start-session', async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import('agentarts-sdk/toolkit/operations/runtime/start-session')
-    >();
-  operationMocks.real = actual.startRuntimeSession as (...args: any[]) => Promise<Record<string, any>>;
+    await importOriginal<typeof import('agentarts-sdk/toolkit/operations/runtime/start-session')>();
+  operationMocks.real = actual.startRuntimeSession as (
+    ...args: any[]
+  ) => Promise<Record<string, any>>;
   operationMocks.fn = vi.fn((...args: any[]) => operationMocks.real(...args));
   return {
     ...actual,
@@ -89,7 +88,9 @@ beforeEach(() => {
     setAuthToken: vi.fn(),
     startSession: vi.fn().mockResolvedValue(MOCK_RESPONSE),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
 
   invokeMocks.resolveAgentInfo.mockReturnValue(['myagent', 'cn-southwest-2', 'agent-id', 'IAM']);
   invokeMocks.getDataEndpoint.mockResolvedValue('https://data.example.com');
@@ -128,19 +129,16 @@ describe('startRuntimeSession', () => {
   it('raises when the agent has no data endpoint', async () => {
     invokeMocks.getDataEndpoint.mockResolvedValue(null);
 
-    await expect(startRuntimeSession({ agentName: 'myagent' })).rejects.toThrow(
-      'No data endpoint',
-    );
+    await expect(startRuntimeSession({ agentName: 'myagent' })).rejects.toThrow('No data endpoint');
   });
 });
 
 describe('RuntimeClient.startSession', () => {
   /** The real (unmocked) client class, for the SDK-level assertions. */
   async function actualRuntimeClient() {
-    const actual =
-      await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
-        'agentarts-sdk/sdk/service/runtime-client',
-      );
+    const actual = await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
+      'agentarts-sdk/sdk/service/runtime-client',
+    );
     return actual.RuntimeClient;
   }
 
@@ -152,9 +150,11 @@ describe('RuntimeClient.startSession', () => {
   it('posts to the sessions-start path', async () => {
     const RuntimeClientClass = await actualRuntimeClient();
     const instance = new RuntimeClientClass({ dataEndpoint: 'https://data.example.com' });
-    const mockData = vi.spyOn(RuntimeClientClass.prototype, '_data').mockResolvedValue(
-      new RequestResult({ success: true, statusCode: 200, data: MOCK_RESPONSE }),
-    );
+    const mockData = vi
+      .spyOn(RuntimeClientClass.prototype, '_data')
+      .mockResolvedValue(
+        new RequestResult({ success: true, statusCode: 200, data: MOCK_RESPONSE }),
+      );
 
     const result = await instance.startSession('myagent');
 

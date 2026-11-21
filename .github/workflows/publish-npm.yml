@@ -1,0 +1,307 @@
+﻿name: Publish to npm
+
+# 打 tag（v*）时发布以下两个包到 npm：
+#   - @huaweicloud/huaweicloud-sdk-agentidentity（先发，主包依赖它）
+#   - @huaweicloud/agentarts-sdk
+#
+# 版本约定：
+#   tag 形如 v0.0.1，且必须与 packages/agentarts-sdk 的 version 一致；
+#   agentidentity 按其自身 package.json 的 version 发布（若与 tag 不同会给出告警）。
+#   目标版本已存在时自动跳过，便于重复打 tag 或只升其中一个包。
+#
+# 仓库配置：
+#   Secrets  : NPM_TOKEN           必填，npm Automation token（需 @huaweicloud scope 发布权限）
+#   Variables: NPM_REGISTRY_URL    可选，默认 https://registry.npmjs.org
+#              NPM_PROVENANCE      可选，'true' 时对 npmjs 启用 provenance
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: build、测试、打包校验，但不发布'
+        type: boolean
+        default: true
+      tag:
+        description: '可选：待校验的 tag（如 v0.0.1）。留空则使用 package.json 中的版本'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  # 仅当 NPM_PROVENANCE=true 且发布到 registry.npmjs.org 时使用
+  id-token: write
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '12.21.0'
+  REGISTRY_URL: ${{ vars.NPM_REGISTRY_URL || 'https://registry.npmjs.org' }}
+  NPM_PROVENANCE: ${{ vars.NPM_PROVENANCE || 'false' }}
+
+jobs:
+  verify:
+    name: Build, test & pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      dry_run: ${{ steps.meta.outputs.dry_run }}
+      sdk_version: ${{ steps.meta.outputs.sdk_version }}
+      identity_version: ${{ steps.meta.outputs.identity_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: ${{ env.REGISTRY_URL }}
+
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Resolve versions and validate tag
+        id: meta
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          SDK_VERSION="$(node -p "require('./packages/agentarts-sdk/package.json').version")"
+          IDENTITY_VERSION="$(node -p "require('./packages/huaweicloud-sdk-agentidentity/package.json').version")"
+
+          if [[ -z "${SDK_VERSION}" || -z "${IDENTITY_VERSION}" ]]; then
+            echo "::error::Cannot read package versions"
+            exit 1
+          fi
+
+          TAG=""
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${INPUT_TAG:-}" ]]; then
+            TAG="${INPUT_TAG}"
+          fi
+
+          if [[ -n "${TAG}" ]]; then
+            if [[ ! "${TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Invalid tag '${TAG}'. Expected 'v<major>.<minor>.<patch>' (e.g. v${SDK_VERSION})."
+              exit 1
+            fi
+            TAG_VERSION="${TAG#v}"
+            if [[ "${TAG_VERSION}" != "${SDK_VERSION}" ]]; then
+              echo "::error::Tag version '${TAG_VERSION}' does not match @huaweicloud/agentarts-sdk version '${SDK_VERSION}'. Bump the package version or use the correct tag."
+              exit 1
+            fi
+            if [[ "${IDENTITY_VERSION}" != "${TAG_VERSION}" ]]; then
+              echo "::warning::@huaweicloud/huaweicloud-sdk-agentidentity is at ${IDENTITY_VERSION}, which differs from tag ${TAG}. It will be published at ${IDENTITY_VERSION} (skipped if already on the registry)."
+            fi
+          else
+            echo "::notice::No tag supplied (workflow_dispatch); using package versions: agentarts-sdk=${SDK_VERSION}, agentidentity=${IDENTITY_VERSION}"
+          fi
+
+          DRY_RUN="${INPUT_DRY_RUN:-false}"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            DRY_RUN="false"
+          fi
+          if [[ "${DRY_RUN}" != "true" && "${DRY_RUN}" != "false" ]]; then
+            DRY_RUN="false"
+          fi
+
+          {
+            echo "sdk_version=${SDK_VERSION}"
+            echo "identity_version=${IDENTITY_VERSION}"
+            echo "dry_run=${DRY_RUN}"
+            echo "tag=${TAG}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Resolved: agentarts-sdk=${SDK_VERSION}, agentidentity=${IDENTITY_VERSION}, tag='${TAG}', dry_run=${DRY_RUN}"
+
+      - name: Copy README/LICENSE into packages
+        # npm 只从包目录收集 README/LICENSE；复制后才会进入 tarball。
+        run: |
+          cp README.md LICENSE packages/agentarts-sdk/
+          cp README.md LICENSE packages/huaweicloud-sdk-agentidentity/
+
+      - name: Validate npm tarballs
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACK_DIR="${RUNNER_TEMP}/packs"
+          rm -rf "${PACK_DIR}"
+          mkdir -p "${PACK_DIR}"
+
+          pack_and_check() {
+            local name="$1"
+            local required_file="$2"
+            local tarball
+            tarball="$(pnpm --filter "${name}" pack --pack-destination "${PACK_DIR}" | tail -n 1)"
+
+            if [[ ! -f "${tarball}" ]]; then
+              echo "::error::Failed to create tarball for ${name}"
+              exit 1
+            fi
+
+            echo "Packed ${name} -> ${tarball}"
+            if ! tar -tzf "${tarball}" | grep -qx "package/dist/index.js"; then
+              echo "::error::${name} tarball is missing dist/index.js"
+              exit 1
+            fi
+            if ! tar -tzf "${tarball}" | grep -qx "package/README.md"; then
+              echo "::error::${name} tarball is missing README.md"
+              exit 1
+            fi
+            if [[ -n "${required_file}" ]] && ! tar -tzf "${tarball}" | grep -qx "${required_file}"; then
+              echo "::error::${name} tarball is missing ${required_file}"
+              exit 1
+            fi
+            if tar -xOf "${tarball}" package/package.json | grep -q '"workspace:'; then
+              echo "::error::${name} tarball still contains 'workspace:' dependencies (pnpm should rewrite them)"
+              exit 1
+            fi
+          }
+
+          pack_and_check "@huaweicloud/huaweicloud-sdk-agentidentity" ""
+          pack_and_check "@huaweicloud/agentarts-sdk" "package/dist/assets/toolkit/plugins/memory/resources/scripts/_shared.mjs"
+
+      - name: Write summary
+        shell: bash
+        env:
+          SDK_VERSION: ${{ steps.meta.outputs.sdk_version }}
+          IDENTITY_VERSION: ${{ steps.meta.outputs.identity_version }}
+          DRY_RUN: ${{ steps.meta.outputs.dry_run }}
+        run: |
+          {
+            echo "### npm publish: $( [[ "${DRY_RUN}" == "true" ]] && echo 'dry run' || echo 'publish' )"
+            echo ""
+            echo "| Package | Version | Registry |"
+            echo "| --- | --- | --- |"
+            echo "| @huaweicloud/huaweicloud-sdk-agentidentity | ${IDENTITY_VERSION} | ${REGISTRY_URL} |"
+            echo "| @huaweicloud/agentarts-sdk | ${SDK_VERSION} | ${REGISTRY_URL} |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  publish:
+    name: Publish packages
+    needs: verify
+    if: needs.verify.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: ${{ env.REGISTRY_URL }}
+
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Copy README/LICENSE into packages
+        run: |
+          cp README.md LICENSE packages/agentarts-sdk/
+          cp README.md LICENSE packages/huaweicloud-sdk-agentidentity/
+
+      - name: Publish to npm
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm_config_registry: ${{ env.REGISTRY_URL }}
+          SDK_VERSION: ${{ needs.verify.outputs.sdk_version }}
+          IDENTITY_VERSION: ${{ needs.verify.outputs.identity_version }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
+            echo "::error::NPM_TOKEN secret is not configured. Add an npm Automation token in repository secrets."
+            exit 1
+          fi
+
+          RESULTS="${RUNNER_TEMP}/publish-results.txt"
+          : > "${RESULTS}"
+
+          publish_package() {
+            local name="$1"
+            local version="$2"
+            local dist_tag="latest"
+
+            if npm view "${name}@${version}" version --registry "${REGISTRY_URL}" >/dev/null 2>&1; then
+              echo "::notice::${name}@${version} already exists on ${REGISTRY_URL}; skipping."
+              echo "${name}|${version}|skipped (already published)" >> "${RESULTS}"
+              return 0
+            fi
+
+            # 预发布版本发布到 next，稳定版本发布到 latest。
+            if [[ "${version}" == *-* ]]; then
+              dist_tag="next"
+            fi
+
+            local args=(--no-git-checks --access public --tag "${dist_tag}")
+            if [[ "${NPM_PROVENANCE}" == "true" && "${REGISTRY_URL}" == https://registry.npmjs.org* ]]; then
+              args+=(--provenance)
+            fi
+
+            echo "::group::Publishing ${name}@${version} (dist-tag: ${dist_tag})"
+            pnpm --filter "${name}" publish "${args[@]}"
+            echo "::endgroup::"
+
+            echo "${name}|${version}|published" >> "${RESULTS}"
+          }
+
+          # 先发布被依赖的包，再发布主包。
+          publish_package "@huaweicloud/huaweicloud-sdk-agentidentity" "${IDENTITY_VERSION}"
+          publish_package "@huaweicloud/agentarts-sdk" "${SDK_VERSION}"
+
+          {
+            echo "### npm publish results"
+            echo ""
+            echo "| Package | Version | Result |"
+            echo "| --- | --- | --- |"
+            while IFS='|' read -r name version result; do
+              echo "| ${name} | ${version} | ${result} |"
+            done < "${RESULTS}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+

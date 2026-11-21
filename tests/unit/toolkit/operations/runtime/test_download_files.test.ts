@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime download-files operation.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_download_files.py`
@@ -40,8 +40,7 @@ vi.mock('agentarts-sdk/toolkit/operations/runtime/invoke', async (importOriginal
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -132,7 +131,9 @@ beforeEach(() => {
     setAuthToken: vi.fn(),
     downloadFiles: vi.fn().mockResolvedValue(streamResult({ chunks: [Buffer.from('test')] })),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
   invokeMocks.checkFileTransferEnabled.mockResolvedValue(undefined);
   invokeMocks.getDataEndpoint.mockResolvedValue('https://test.example.com');
 });
@@ -259,10 +260,9 @@ describe('downloadRuntimeFiles', () => {
 describe('RuntimeClient.downloadFiles', () => {
   /** The real (unmocked) client class, for the SDK-level assertions. */
   async function actualRuntimeClient(): Promise<typeof RuntimeClientType> {
-    const actual =
-      await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
-        'agentarts-sdk/sdk/service/runtime-client',
-      );
+    const actual = await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
+      'agentarts-sdk/sdk/service/runtime-client',
+    );
     return actual.RuntimeClient;
   }
 

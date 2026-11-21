@@ -19,6 +19,5 @@ export default defineConfig({
     // Toolkit tests change the working directory (process.chdir), which is not
     // supported by worker threads; run each test file in a child process.
     pool: 'forks',
-    poolOptions: { forks: { singleFork: false } },
   },
 });

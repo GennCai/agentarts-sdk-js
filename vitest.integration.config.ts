@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+﻿import { defineConfig } from 'vitest/config';
 import aliases from './vitest.aliases.js';
 
 export default defineConfig({
@@ -16,6 +16,7 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    // 集成测试共享资源注册表/runId，按文件串行执行。
+    fileParallelism: false,
   },
 });

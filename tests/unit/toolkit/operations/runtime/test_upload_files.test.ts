@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime upload-files operation.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_upload_files.py`
@@ -36,8 +36,7 @@ vi.mock('agentarts-sdk/toolkit/operations/runtime/invoke', async (importOriginal
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -76,7 +75,9 @@ beforeEach(() => {
     setAuthToken: vi.fn(),
     uploadFiles: vi.fn().mockResolvedValue({ status: 'uploaded' }),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
   invokeMocks.checkFileTransferEnabled.mockResolvedValue(undefined);
   invokeMocks.getDataEndpoint.mockResolvedValue('https://test.example.com');
 });
@@ -87,9 +88,9 @@ afterEach(() => {
 
 describe('uploadRuntimeFiles', () => {
   it('raises when no files are given', async () => {
-    await expect(
-      uploadRuntimeFiles({ files: [], sessionId: 'session-123' }),
-    ).rejects.toThrow('Files are required');
+    await expect(uploadRuntimeFiles({ files: [], sessionId: 'session-123' })).rejects.toThrow(
+      'Files are required',
+    );
   });
 
   it('raises when no agent can be resolved', async () => {
@@ -104,9 +105,9 @@ describe('uploadRuntimeFiles', () => {
   it('raises when no session id is given', async () => {
     writeFileSync(join(tmpDir, '.agentarts_config.yaml'), CONFIG);
 
-    await expect(
-      uploadRuntimeFiles({ files: [{ path: '/test.txt', localFile }] }),
-    ).rejects.toThrow('Session ID is required');
+    await expect(uploadRuntimeFiles({ files: [{ path: '/test.txt', localFile }] })).rejects.toThrow(
+      'Session ID is required',
+    );
   });
 
   it('passes the remote path to the client', async () => {
@@ -211,10 +212,9 @@ describe('uploadRuntimeFiles', () => {
 describe('RuntimeClient.uploadFiles', () => {
   /** The real (unmocked) client class, for the SDK-level assertions. */
   async function actualRuntimeClient() {
-    const actual =
-      await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
-        'agentarts-sdk/sdk/service/runtime-client',
-      );
+    const actual = await vi.importActual<typeof import('agentarts-sdk/sdk/service/runtime-client')>(
+      'agentarts-sdk/sdk/service/runtime-client',
+    );
     return actual.RuntimeClient;
   }
 
@@ -227,9 +227,7 @@ describe('RuntimeClient.uploadFiles', () => {
         new RequestResult({ success: true, statusCode: 200, data: { status: 'uploaded' } }),
       );
 
-    await instance.uploadFiles('myagent', 'session-123', [
-      { path: '/test.txt', content: 'test' },
-    ]);
+    await instance.uploadFiles('myagent', 'session-123', [{ path: '/test.txt', content: 'test' }]);
 
     const path = mockData.mock.calls[0]![1] as string;
     expect(path).toContain('/runtimes/myagent/upload-files');
@@ -244,12 +242,11 @@ describe('RuntimeClient.uploadFiles', () => {
         new RequestResult({ success: true, statusCode: 200, data: { status: 'uploaded' } }),
       );
 
-    await instance.uploadFiles(
-      'myagent',
-      'session-123',
-      [{ path: '/test.txt', content: 'test' }],
-      { fileUserId: 1001, fileGroupId: 1002, fileMode: '0755' },
-    );
+    await instance.uploadFiles('myagent', 'session-123', [{ path: '/test.txt', content: 'test' }], {
+      fileUserId: 1001,
+      fileGroupId: 1002,
+      fileMode: '0755',
+    });
 
     const options = mockData.mock.calls[0]![2] as { params: Record<string, any> };
     expect(options.params['user_id']).toBe(1001);
@@ -260,15 +257,13 @@ describe('RuntimeClient.uploadFiles', () => {
   it('puts the path in query parameters for multipart uploads', async () => {
     const RuntimeClientClass = await actualRuntimeClient();
     const instance = new RuntimeClientClass({ dataEndpoint: 'https://test.example.com' });
-    const mockData = vi
-      .spyOn(RuntimeClientClass.prototype, '_data')
-      .mockResolvedValue(
-        new RequestResult({
-          success: true,
-          statusCode: 200,
-          data: { status: 'uploaded', files: 2 },
-        }),
-      );
+    const mockData = vi.spyOn(RuntimeClientClass.prototype, '_data').mockResolvedValue(
+      new RequestResult({
+        success: true,
+        statusCode: 200,
+        data: { status: 'uploaded', files: 2 },
+      }),
+    );
 
     await instance.uploadFiles(
       'myagent',

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the Gateway CLI commands.
  *
  * Ported 1:1 from `tests/unit/toolkit/cli/gateway/test_gateway_cli.py`.
@@ -46,7 +46,9 @@ const gatewayMocks = vi.hoisted(() => ({
 
 vi.mock('agentarts-sdk/sdk/gateway/index', async (importOriginal) => {
   const actual = await importOriginal<typeof import('agentarts-sdk/sdk/gateway/index')>();
-  gatewayMocks.GatewayClient = vi.fn(() => gatewayMocks.instance);
+  gatewayMocks.GatewayClient = vi.fn(function () {
+    return gatewayMocks.instance;
+  });
   return {
     ...actual,
     GatewayClient: gatewayMocks.GatewayClient as unknown as typeof actual.GatewayClient,
@@ -59,10 +61,7 @@ function okResult(data: Record<string, any> | null = null): RequestResult {
 }
 
 /** Failed request result (Python `Mock(success=False, data=..., error=...)`). */
-function errorResult(
-  data: Record<string, any> | null,
-  error: string | null = null,
-): RequestResult {
+function errorResult(data: Record<string, any> | null, error: string | null = null): RequestResult {
   return new RequestResult({ success: false, statusCode: 400, data, error });
 }
 
@@ -416,9 +415,7 @@ describe('create-target', () => {
   });
 
   it('reports an unexpected error', async () => {
-    gatewayMocks.instance['createGatewayTarget'].mockRejectedValue(
-      new Error('Unexpected error'),
-    );
+    gatewayMocks.instance['createGatewayTarget'].mockRejectedValue(new Error('Unexpected error'));
 
     const result = await runGateway([
       'create-target',
@@ -461,9 +458,7 @@ describe('update-target', () => {
   });
 
   it('reports an unexpected error', async () => {
-    gatewayMocks.instance['updateGatewayTarget'].mockRejectedValue(
-      new Error('Unexpected error'),
-    );
+    gatewayMocks.instance['updateGatewayTarget'].mockRejectedValue(new Error('Unexpected error'));
 
     const result = await runGateway([
       'update-target',
@@ -501,9 +496,7 @@ describe('delete-target', () => {
 
   it('reports an unexpected error', async () => {
     readlineMocks.answer = 'y';
-    gatewayMocks.instance['deleteGatewayTarget'].mockRejectedValue(
-      new Error('Unexpected error'),
-    );
+    gatewayMocks.instance['deleteGatewayTarget'].mockRejectedValue(new Error('Unexpected error'));
 
     const result = await runGateway(['delete-target', 'test-gateway-id', 'test-target-id']);
 
@@ -555,9 +548,7 @@ describe('list-targets', () => {
   });
 
   it('reports an unexpected error', async () => {
-    gatewayMocks.instance['listGatewayTargets'].mockRejectedValue(
-      new Error('Unexpected error'),
-    );
+    gatewayMocks.instance['listGatewayTargets'].mockRejectedValue(new Error('Unexpected error'));
 
     const result = await runGateway(['list-targets', 'test-gateway-id']);
 

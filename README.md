@@ -387,6 +387,8 @@ pnpm typecheck
 
 # 格式化
 pnpm format
+
+# 发布（维护者）：推送 vX.Y.Z tag 触发 .github/workflows/publish-npm.yml
 ```
 
 ## License

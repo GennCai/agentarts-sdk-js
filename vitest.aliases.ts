@@ -12,6 +12,11 @@ export default [
     replacement: p('packages/agentarts-sdk/src/toolkit/index.ts'),
   },
   { find: /^agentarts-sdk\/(.*)$/, replacement: p('packages/agentarts-sdk/src/$1') },
+  // AgentIdentity 底座：同时兼容新（scoped）与旧的包名，确保源码与测试共享同一模块实例。
+  {
+    find: /^@huaweicloud\/huaweicloud-sdk-agentidentity$/,
+    replacement: p('packages/huaweicloud-sdk-agentidentity/src/index.ts'),
+  },
   {
     find: /^huaweicloud-sdk-agentidentity$/,
     replacement: p('packages/huaweicloud-sdk-agentidentity/src/index.ts'),

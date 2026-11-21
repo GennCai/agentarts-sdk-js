@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CLI runtime e2e against a deployed agent (billable tier).
  *
  * Ported from `tests/integration/toolkit/test_cli_deployed_runtime.py`.
@@ -132,6 +132,7 @@ describeDeployed('CLI against a deployed runtime (billable tier)', () => {
 
   it.skipIf(!CLI_READY)(
     'runtime file transfer round-trips (best effort)',
+    { timeout: 300_000 },
     async (ctx) => {
       // The file-upload endpoint may require a bearer token that an IAM-only
       // agent doesn't have (401); in that case skip rather than fail — the core
@@ -183,6 +184,5 @@ describeDeployed('CLI against a deployed runtime (billable tier)', () => {
         });
       }
     },
-    { timeout: 300_000 },
   );
 });

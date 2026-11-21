@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Local CLI e2e tests (default tier — no credentials, no Docker, no cloud).
  *
  * Ported 1:1 from `tests/integration/toolkit/test_cli_local.py`.
@@ -90,9 +90,10 @@ describe('CLI local commands', () => {
       expect(result.status, result.stderr).toBe(0);
 
       const project = join(workDir, 'myagent');
-      expect(exists(join(project, '.agentarts_config.yaml')), '.agentarts_config.yaml missing').toBe(
-        true,
-      );
+      expect(
+        exists(join(project, '.agentarts_config.yaml')),
+        '.agentarts_config.yaml missing',
+      ).toBe(true);
       expect(exists(join(project, 'Dockerfile')), 'Dockerfile missing').toBe(true);
       // Python templates ship `agent.py` + `requirements.txt`; the Node port may
       // ship `agent.ts` + `package.json` instead, so accept either scaffold.
@@ -111,10 +112,10 @@ describe('CLI local commands', () => {
     const target = join(workDir, 'sub');
     await mkdir(target);
 
-    const result = runCli(
-      ['init', '-n', 'myagent', '-t', 'basic', '-r', REGION, '-p', target],
-      { cwd: workDir, env },
-    );
+    const result = runCli(['init', '-n', 'myagent', '-t', 'basic', '-r', REGION, '-p', target], {
+      cwd: workDir,
+      env,
+    });
     expect(result.status, result.stderr).toBe(0);
     expect(exists(join(target, 'myagent', '.agentarts_config.yaml'))).toBe(true);
   });
@@ -173,36 +174,44 @@ describe('CLI local commands', () => {
 
   it.skipIf(!CLI_READY)('config set/get round-trips a value', async () => {
     addAgent();
-    expect(runCli(['config', 'set', 'base.description', 'hello', '-a', 'myagent'], {
-      cwd: workDir,
-      env,
-    }).status).toBe(0);
+    expect(
+      runCli(['config', 'set', 'base.description', 'hello', '-a', 'myagent'], {
+        cwd: workDir,
+        env,
+      }).status,
+    ).toBe(0);
 
     // Assert the value landed in the YAML (robust vs formatted stdout capture).
     expect(await readText(join(workDir, '.agentarts_config.yaml'))).toContain('hello');
-    expect(runCli(['config', 'get', 'base.description', '-a', 'myagent'], {
-      cwd: workDir,
-      env,
-    }).status).toBe(0);
+    expect(
+      runCli(['config', 'get', 'base.description', '-a', 'myagent'], {
+        cwd: workDir,
+        env,
+      }).status,
+    ).toBe(0);
   });
 
   it.skipIf(!CLI_READY)('config set-env / list-env / remove-env work', async () => {
     addAgent();
     const configPath = join(workDir, '.agentarts_config.yaml');
 
-    expect(runCli(['config', 'set-env', 'MY_VAR', 'val', '-a', 'myagent'], {
-      cwd: workDir,
-      env,
-    }).status).toBe(0);
+    expect(
+      runCli(['config', 'set-env', 'MY_VAR', 'val', '-a', 'myagent'], {
+        cwd: workDir,
+        env,
+      }).status,
+    ).toBe(0);
     const withVar = await readText(configPath);
     expect(withVar).toContain('MY_VAR');
     expect(withVar).toContain('val');
 
     expect(runCli(['config', 'list-env', '-a', 'myagent'], { cwd: workDir, env }).status).toBe(0);
-    expect(runCli(['config', 'remove-env', 'MY_VAR', '-a', 'myagent'], {
-      cwd: workDir,
-      env,
-    }).status).toBe(0);
+    expect(
+      runCli(['config', 'remove-env', 'MY_VAR', '-a', 'myagent'], {
+        cwd: workDir,
+        env,
+      }).status,
+    ).toBe(0);
     expect(await readText(configPath)).not.toContain('MY_VAR');
   });
 
@@ -222,86 +231,82 @@ describe('CLI local commands', () => {
   // dev (blocking HTTP server — subprocess)
   // -------------------------------------------------------------------------
 
-  it.skipIf(!CLI_READY)(
-    'dev serves /ping and /invocations',
-    async () => {
-      // Scaffold a minimal Node project in workDir.
-      //
-      // Python's test reuses the `init` scaffold because the Python CLI starts a
-      // uvicorn app; in the Node port `init` emits a *deployable Python*
-      // project, while `dev` loads a TS/JS entrypoint. The minimal project below
-      // is the Node equivalent of that scaffold (runtime app + config).
-      const project = join(workDir, 'myagent');
-      await mkdir(project, { recursive: true });
-      await writeFile(
-        join(project, '.agentarts_config.yaml'),
-        [
-          'default_agent: myagent',
-          'agents:',
-          '  myagent:',
-          '    base:',
-          '      name: myagent',
-          '      entrypoint: agent:app',
-          '',
-        ].join('\n'),
-      );
-      const sdkIndexUrl = pathToFileURL(join(dirname(CLI_DIST_PATH), 'index.js')).href;
-      await writeFile(
-        join(project, 'agent.mjs'),
-        [
-          `import { AgentArtsRuntimeApp } from '${sdkIndexUrl}';`,
-          'const app = new AgentArtsRuntimeApp();',
-          'app.entrypoint((payload) => ({ response: payload }));',
-          'export { app };',
-          '',
-        ].join('\n'),
-      );
+  it.skipIf(!CLI_READY)('dev serves /ping and /invocations', { timeout: 120_000 }, async () => {
+    // Scaffold a minimal Node project in workDir.
+    //
+    // Python's test reuses the `init` scaffold because the Python CLI starts a
+    // uvicorn app; in the Node port `init` emits a *deployable Python*
+    // project, while `dev` loads a TS/JS entrypoint. The minimal project below
+    // is the Node equivalent of that scaffold (runtime app + config).
+    const project = join(workDir, 'myagent');
+    await mkdir(project, { recursive: true });
+    await writeFile(
+      join(project, '.agentarts_config.yaml'),
+      [
+        'default_agent: myagent',
+        'agents:',
+        '  myagent:',
+        '    base:',
+        '      name: myagent',
+        '      entrypoint: agent:app',
+        '',
+      ].join('\n'),
+    );
+    const sdkIndexUrl = pathToFileURL(join(dirname(CLI_DIST_PATH), 'index.js')).href;
+    await writeFile(
+      join(project, 'agent.mjs'),
+      [
+        `import { AgentArtsRuntimeApp } from '${sdkIndexUrl}';`,
+        'const app = new AgentArtsRuntimeApp();',
+        'app.entrypoint((payload) => ({ response: payload }));',
+        'export { app };',
+        '',
+      ].join('\n'),
+    );
 
-      // 2. Launch `agentarts dev` against it.
-      const port = await findFreePort();
-      const cli = spawnCli(['dev', '-p', String(port), '-h', '127.0.0.1'], {
-        cwd: project,
-        env,
-      });
-      try {
-        const base = `http://127.0.0.1:${port}`;
-        let pingOk = false;
-        for (let attempt = 0; attempt < 40; attempt += 1) {
-          try {
-            const response = await fetch(`${base}/ping`, { signal: AbortSignal.timeout(1000) });
-            if (response.status === 200) {
-              pingOk = true;
-              break;
-            }
-          } catch {
-            // server not up yet
+    // 2. Launch `agentarts dev` against it.
+    const port = await findFreePort();
+    const cli = spawnCli(['dev', '-p', String(port), '-h', '127.0.0.1'], {
+      cwd: project,
+      env,
+    });
+    try {
+      const base = `http://127.0.0.1:${port}`;
+      let pingOk = false;
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        try {
+          const response = await fetch(`${base}/ping`, { signal: AbortSignal.timeout(1000) });
+          if (response.status === 200) {
+            pingOk = true;
+            break;
           }
-          await sleep(500);
+        } catch {
+          // server not up yet
         }
-        expect(pingOk, `dev server did not come up:\n${cli.readStdout()}${cli.readStderr()}`).toBe(
-          true,
-        );
-
-        // 3. POST /invocations.
-        const response = await fetch(`${base}/invocations`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ message: 'hi' }),
-        });
-        expect(response.status).toBe(200);
-        const body = (await response.json()) as Record<string, any>;
-        expect('response' in body).toBe(true);
-      } finally {
-        cli.child.kill();
-        await Promise.race([once(cli.child, 'exit'), sleep(5_000)]);
-        if (cli.child.exitCode === null) {
-          cli.child.kill('SIGKILL');
-        }
-        await cli.dispose();
+        await sleep(500);
       }
-    },
-    { timeout: 120_000 },
-  );
+      expect(pingOk, `dev server did not come up:\n${cli.readStdout()}${cli.readStderr()}`).toBe(
+        true,
+      );
+
+      // 3. POST /invocations.
+      const response = await fetch(`${base}/invocations`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ message: 'hi' }),
+      });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as Record<string, any>;
+      expect('response' in body).toBe(true);
+    } finally {
+      cli.child.kill();
+      await Promise.race([once(cli.child, 'exit'), sleep(5_000)]);
+      if (cli.child.exitCode === null) {
+        cli.child.kill('SIGKILL');
+      }
+      await cli.dispose();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -315,5 +320,3 @@ function exists(path: string): boolean {
 async function readText(path: string): Promise<string> {
   return readFile(path, 'utf8');
 }
-
-

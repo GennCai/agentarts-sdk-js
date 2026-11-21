@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime stop-session operation.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_stop_session.py`.
@@ -32,8 +32,7 @@ vi.mock('agentarts-sdk/toolkit/operations/runtime/invoke', async (importOriginal
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -81,7 +80,9 @@ beforeEach(() => {
     setAuthToken: vi.fn(),
     stopSession: vi.fn().mockResolvedValue({ status: 'stopped' }),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
   invokeMocks.getDataEndpoint.mockResolvedValue('https://test.example.com');
 });
 

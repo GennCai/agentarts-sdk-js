@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime exec-command operation.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_exec_command.py`.
@@ -31,8 +31,7 @@ vi.mock('agentarts-sdk/toolkit/operations/runtime/invoke', async (importOriginal
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -84,7 +83,9 @@ beforeEach(() => {
     setAuthToken: vi.fn(),
     execCommand: vi.fn().mockResolvedValue({ stdout: 'output' }),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
   invokeMocks.getDataEndpoint.mockResolvedValue('https://test.example.com');
 });
 
@@ -166,9 +167,7 @@ describe('execRuntimeCommand', () => {
   });
 
   it('raises for a whitespace-only command', async () => {
-    await expect(execRuntimeCommand({ command: '   ' })).rejects.toThrow(
-      'Command cannot be empty',
-    );
+    await expect(execRuntimeCommand({ command: '   ' })).rejects.toThrow('Command cannot be empty');
   });
 
   it('parses the command string', async () => {
@@ -197,9 +196,7 @@ describe('execRuntimeCommand', () => {
   });
 
   it('raises when no agent can be resolved', async () => {
-    await expect(execRuntimeCommand({ command: 'ls' })).rejects.toThrow(
-      'Agent name is required',
-    );
+    await expect(execRuntimeCommand({ command: 'ls' })).rejects.toThrow('Agent name is required');
   });
 
   it('raises when the agent has no data endpoint', async () => {

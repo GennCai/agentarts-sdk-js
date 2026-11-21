@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unit tests for the runtime deploy operation.
  *
  * Ported 1:1 from `tests/unit/toolkit/operations/runtime/test_deploy.py`.
@@ -32,8 +32,7 @@ import {
 const clientMocks = vi.hoisted(() => ({ RuntimeClient: vi.fn() }));
 
 vi.mock('agentarts-sdk/sdk/service/runtime-client', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
+  const actual = await importOriginal<typeof import('agentarts-sdk/sdk/service/runtime-client')>();
   return {
     ...actual,
     RuntimeClient: clientMocks.RuntimeClient as unknown as typeof actual.RuntimeClient,
@@ -84,7 +83,9 @@ beforeEach(() => {
   client = {
     createOrUpdateAgent: vi.fn().mockResolvedValue({ id: 'agent-123', latest_version: 'v1' }),
   };
-  clientMocks.RuntimeClient.mockImplementation(() => client);
+  clientMocks.RuntimeClient.mockImplementation(function () {
+    return client;
+  });
   containerMocks.checkDockerAvailable.mockResolvedValue(true);
   containerMocks.checkDockerfileExists.mockReturnValue(true);
   containerMocks.buildDockerImage.mockResolvedValue(true);
