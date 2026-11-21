@@ -243,7 +243,7 @@ importers:
       '@langchain/langgraph':
         specifier: '>=1.0.0'
         version: 1.7.5(@langchain/core@1.4.1(ws@8.23.0))(zod@4.6.7)
-      '@tianma630/huaweicloud-sdk-agentidentity':
+      '@huaweicloud/huaweicloud-sdk-agentidentity':
         specifier: workspace:*
         version: link:../huaweicloud-sdk-agentidentity
       commander:

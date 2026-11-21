@@ -1,5 +1,5 @@
 {
-  "name": "@tianma630/huaweicloud-sdk-agentidentity",
+  "name": "@huaweicloud/huaweicloud-sdk-agentidentity",
   "version": "0.0.1",
   "description": "Huawei Cloud AgentIdentity SDK for Node.js (AgentArts port, v1 subset)",
   "type": "module",

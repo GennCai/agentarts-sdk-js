@@ -1,15 +1,5 @@
 # Huawei Cloud AgentArts SDK for Node.js
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Node.js](https://img.shields.io/badge/Node.js-20%2B-brightgreen.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
-
-Build, deploy and manage AI agents with Huawei Cloud capabilities.
-
-> 本仓库是 [`agentarts-sdk-python`](https://github.com/huaweicloud/agentarts-sdk-python) 的 Node.js / TypeScript 移植，
-> 目录结构、公共 API 与行为与 Python 版保持一致（命名遵循 TypeScript 惯例：方法/参数/字段 camelCase，
-> 类名 PascalCase，枚举成员保持大写）。移植约定详见 [PORTING.md](PORTING.md)。
-
 ## Overview
 
 华为云 AgentArts SDK 是用于开发、部署和管理 AI Agent 的综合工具包。它在支持主流 Agent 框架的同时，
@@ -70,7 +60,7 @@ SDK 提供 `AgentArtsRuntimeApp`，把 Agent 逻辑包装为标准 HTTP/WebSocke
 
 ```ts
 // agent.ts
-import { AgentArtsRuntimeApp, type RequestContext } from 'agentarts-sdk';
+import { AgentArtsRuntimeApp, type RequestContext } from '@huaweicloud/agentarts-sdk';
 import { Annotation, END, StateGraph } from '@langchain/langgraph';
 import { ChatOpenAI } from '@langchain/openai';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
@@ -151,10 +141,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 ```bash
 # pnpm（推荐）
-pnpm add agentarts-sdk
+pnpm add @huaweicloud/agentarts-sdk
 
 # npm
-npm install agentarts-sdk
+npm install @huaweicloud/agentarts-sdk
 ```
 
 ### Install the CLI
@@ -163,10 +153,10 @@ npm install agentarts-sdk
 
 ```bash
 # pnpm
-pnpm add -g agentarts-sdk
+pnpm add -g @huaweicloud/agentarts-sdk
 
 # npm
-npm install -g agentarts-sdk
+npm install -g @huaweicloud/agentarts-sdk
 
 agentarts --help
 ```
