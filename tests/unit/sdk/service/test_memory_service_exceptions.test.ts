@@ -20,7 +20,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { APIException, MemoryAPIException } from 'agentarts-sdk/sdk/service/http-client';
-import { MemoryHttpService, sendHttpRequest } from 'agentarts-sdk/sdk/service/memory-service';
+import {
+  ControlPlaneAuthenticationStrategy,
+  MemoryHttpService,
+  sendHttpRequest,
+} from 'agentarts-sdk/sdk/service/memory-service';
+import { SDKSigner } from 'agentarts-sdk/sdk/utils/signer';
 import { AsyncMemoryHttpService } from 'agentarts-sdk/sdk/service/memory-service-async';
 
 /** Create a data-plane `MemoryHttpService` (no AK/SK signing needed). */
@@ -364,5 +369,30 @@ describe('TestMemoryQueryEncoding', () => {
     expect(raw).not.toContain('deleted=');
     expect(raw).not.toContain('missing=');
     expect(raw).toContain('limit=10');
+  });
+
+  it('test_signed_query_matches_wire', async () => {
+    // The signer keeps null/undefined verbatim (`deleted=null`), which the wire
+    // never carries, so the canonical query must be normalized first.
+    const signSpy = vi.spyOn(SDKSigner.prototype, 'sign').mockResolvedValue({});
+    try {
+      const strategy = new ControlPlaneAuthenticationStrategy();
+      (strategy as any)._signer = new SDKSigner();
+      const params = {
+        deleted: null,
+        missing: undefined,
+        tag: ['prod', 'dev'],
+        limit: 1,
+      };
+
+      await strategy.signRequest('GET', 'https://memory.example.com/v1/core/spaces', {}, null, params);
+
+      const signedQuery = signSpy.mock.calls[0][4] as Array<[string, any]>;
+      expect(Object.fromEntries(signedQuery)).toEqual({ tag: ['dev', 'prod'], limit: '1' });
+      // The caller's array must not be sorted in place by the signer.
+      expect(params.tag).toEqual(['prod', 'dev']);
+    } finally {
+      signSpy.mockRestore();
+    }
   });
 });
