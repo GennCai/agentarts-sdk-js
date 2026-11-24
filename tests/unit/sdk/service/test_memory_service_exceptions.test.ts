@@ -20,7 +20,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { APIException, MemoryAPIException } from 'agentarts-sdk/sdk/service/http-client';
-import { MemoryHttpService } from 'agentarts-sdk/sdk/service/memory-service';
+import { MemoryHttpService, sendHttpRequest } from 'agentarts-sdk/sdk/service/memory-service';
 import { AsyncMemoryHttpService } from 'agentarts-sdk/sdk/service/memory-service-async';
 
 /** Create a data-plane `MemoryHttpService` (no AK/SK signing needed). */
@@ -335,5 +335,34 @@ describe('TestMemoryAPIExceptionProperties', () => {
     const exc = new MemoryAPIException(404, 'NOT_FOUND', 'Session not found');
     expect(String(exc)).toContain('404');
     expect(String(exc)).toContain('Session not found');
+  });
+});
+
+// ============================================================
+// Query serialization
+// ============================================================
+
+describe('TestMemoryQueryEncoding', () => {
+  it('test_wire_query_uses_rfc3986', async () => {
+    // The AK/SK canonical query uses RFC 3986, so the wire must not emit the
+    // form-style `+` for spaces nor keep `~` escaped (`%7E`).
+    const mock = vi.fn(async (_url: string | URL) => jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', mock);
+
+    await sendHttpRequest('GET', 'https://memory.example.com/v1/core/spaces', {
+      params: {
+        actor_id: 'user one(测试)~x',
+        limit: 10,
+        deleted: null,
+        missing: undefined,
+      },
+    });
+
+    const raw = String(mock.mock.calls[0][0]);
+    expect(raw).toContain('actor_id=user%20one%28%E6%B5%8B%E8%AF%95%29~x');
+    expect(raw).not.toContain('+');
+    expect(raw).not.toContain('deleted=');
+    expect(raw).not.toContain('missing=');
+    expect(raw).toContain('limit=10');
   });
 });
