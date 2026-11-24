@@ -215,24 +215,20 @@ export function uploadContentType(
 /**
  * `BaseHTTPClient` subclass that exposes the request pipeline this module
  * needs: forced streaming responses and raw binary request bodies.
- *
- * It also puts query parameters on the wire. `BaseHTTPClient` only forwards
- * `params` to the signer (both the SDK and V11 canonical requests derive the
- * query string from them), so without this the URL would be sent without any
- * query string at all.
  */
 class RuntimeHTTPClient extends BaseHTTPClient {
   private _tlsDispatcher?: Agent;
 
   /**
-   * Execute a request with `options.params` also serialized into the URL.
+   * Execute a request.
    *
-   * Query values are RFC 3986 encoded, which is exactly how the signers encode
-   * them for the canonical request, so the signature stays valid.
+   * Query parameters are serialized into the URL by `BaseHTTPClient._request`
+   * only, using the same RFC 3986 encoding the signers apply to the canonical
+   * request. Appending them here as well would put every parameter on the wire
+   * twice while signing it once, which makes the gateway reject the signature.
    */
   async send(method: string, url: string, options: RequestOptions = {}): Promise<RequestResult> {
-    const { params, ...rest } = options;
-    return this._request(method, _appendQuery(url, params), { ...rest, params });
+    return this._request(method, url, options);
   }
 
   /**
